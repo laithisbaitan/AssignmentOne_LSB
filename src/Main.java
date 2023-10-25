@@ -3,42 +3,63 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Random;
+
+import static java.lang.System.exit;
+import static javax.swing.UIManager.get;
+import static javax.swing.UIManager.getColor;
 
 public class Main {
+    //AVG_BIT_MESSAGE = avg num of words in Email * avg num of char for word * num of bits for each char
+    // = 100 * 5 * 8
     public static int AVG_BIT_MESSAGE = 4000;
     public static int BITS_SPACE;
     public static int BIT_SKIP = 0;
-    public static int messageIndex = 0;
-    public static StringBuilder extractMessage = new StringBuilder();
+    public static ArrayList<Integer> orderOfBits = new ArrayList<>();
+    public static int orderIndex = 0;
+    public static StringBuilder extractedBits = new StringBuilder();
+
 
     public static void main(String[] args) throws IOException {
+        //choose image in CleanImages folder && Message to hide in it
         String cleanImage = "PlayGamesAd.png";
-        StringBuilder messageToHide = stringToBinary("Hi my name is laith");
+        //70 Words message
+//        String message = "Amidst the bustling crowd, " +
+//                "under the radiant sun, a lone sparrow " +
+//                "sings a melody of hope, while the river " +
+//                "whispers secrets to the ancient trees. " +
+//                "Find solace in the embrace of nature's wisdom, " +
+//                "where time's tapestry weaves stories of life's eternal dance.";
+
+        // ~4000 bit message
+//        String message = "Within the tranquil forest, " +
+//                "under the sun's warm embrace, a solitary robin sings a tune of optimism, " +
+//                "while the stream shares its secrets with the ancient oaks. Discover solace " +
+//                "in the wisdom of nature, where the tapestry of time weaves tales of life's " +
+//                "eternal dance. The moonlight gently illuminates a path among the stars. " +
+//                "Night conceals dreams at the threshold of consciousness.  " +
+//                "Unlock the universe's whispers; they hold the key " +
+//                "to your soul's depths and the mysteries of existence.";
+        String message = "hi my name is laith";
+
+        StringBuilder messageToHide = stringToBinary(message);
+        System.out.println(messageToHide.length());
+        System.out.println("Hiding: '"+message+"' In: "+cleanImage);
 
         hideMessage(cleanImage, messageToHide);
 
+        //**********************************************************************
+        System.out.println("Extracting message from: Modified"+cleanImage);
+        //choose Cover image from CoverImages to check for secret messages
         StringBuilder bitMessage = getMessage("ModifiedPlayGamesAd.png");
-        System.out.println("Bit message: " + bitMessage.substring(0, messageToHide.length()*8));
 
-        String message = binaryToString(String.valueOf(bitMessage));
+        System.out.println("Bits extracted: " + bitMessage);
 
-        System.out.println("Secret message was: " + message);
-
-//        mm("PlayGamesAd.png");
+        String ExtractedMessage = binaryToString(String.valueOf(bitMessage));
+        System.out.println("Secret message was: " + ExtractedMessage);
     }
-
-//    public static void mm(String cleanImageName) throws IOException {
-//        File file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CleanImages\\" +
-//                cleanImageName);
-//        BufferedImage img = ImageIO.read(file);
-//
-//        // Saving the modified image as PNG
-//        file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CoverImages\\" +
-//                "Modified" + cleanImageName);
-//        ImageIO.write(img, "png", file); // Use "png" format for lossless compression
-//        System.out.println("Finished!!!");
-//    }
-
 
     public static StringBuilder stringToBinary(String messageToHide) {
         // Convert the message to binary
@@ -65,15 +86,25 @@ public class Main {
     }
 
     public static void hideMessage(String cleanImageName, StringBuilder messageToHide) throws IOException {
+        if (messageToHide.length() > AVG_BIT_MESSAGE){
+            System.out.println("Message to hide is too large for this algorithm!!!");
+            exit(0);
+        }
         // Reading the image
         File file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CleanImages\\" +
                 cleanImageName);
         BufferedImage img = ImageIO.read(file);
-        BITS_SPACE = (img.getHeight() * img.getWidth() * 3) / AVG_BIT_MESSAGE;
+
+        //Calculate the distance between each bit
+        BITS_SPACE = ((img.getHeight() * img.getWidth() * 3) / AVG_BIT_MESSAGE)-1;
+        BIT_SKIP = BITS_SPACE;
+
+        //Order of the bits to distribute
+        orderOfBits = shuffleOrder(AVG_BIT_MESSAGE, BITS_SPACE);
 
         for (int y = 0; y < img.getHeight(); y++) {
             for (int x = 0; x < img.getWidth(); x++) {
-                if (messageIndex < messageToHide.length()) {
+                if (orderIndex < messageToHide.length()) {
                     // Get each pixel pixel
                     int pixel = img.getRGB(x, y);
                     // Extract the color value from the pixel
@@ -98,35 +129,45 @@ public class Main {
         file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CoverImages\\" +
                 "Modified" + cleanImageName);
         ImageIO.write(img, "png", file);
-        System.out.println("Finished!!!");
-        System.out.println("Red: "+ new Color(img.getRGB(0,0)).getRed());
+        System.out.println("Finished hiding message!!!");
     }
 
+    // laith code
     public static int modifyBit(int component, StringBuilder messageToHide) {
+        //check to embed the bit or not
         if (BIT_SKIP == 0) {
             BIT_SKIP = BITS_SPACE;
-            int bitToEmbed;
-            bitToEmbed = messageToHide.charAt(messageIndex) - '0';
+            int messageIndex = orderOfBits.get(orderIndex);
+
+            if (messageIndex > messageToHide.length()){
+                component = (component & ~1);
+            }else {
+                int bitToEmbed = messageToHide.charAt(messageIndex) - '0';
 //            System.out.println("Bit to embed: " + bitToEmbed);
 
 //            System.out.println("Before: "+ component);
-            component = (component & ~1) | bitToEmbed;
-            System.out.println("After: "+ component);
-            messageIndex++;
+                component = (component & ~1) | bitToEmbed;
+//            System.out.println("After: "+ component);
+            }
+            orderIndex++;
         } else {
             BIT_SKIP--;
         }
         return component;
     }
 
+//****************************************************************************************************************
+
     public static StringBuilder getMessage(String CoverImageName) throws IOException {
         BIT_SKIP = BITS_SPACE;
+        //Order of the bits to distribute
+        orderOfBits = shuffleOrder(AVG_BIT_MESSAGE, BITS_SPACE);
+
         // Reading the image
         File file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CoverImages\\" +
                 CoverImageName);
         BufferedImage img = ImageIO.read(file);
-        BITS_SPACE = (img.getHeight() * img.getWidth() * 3) / AVG_BIT_MESSAGE;
-        extractMessage.setLength(0);
+        extractedBits.setLength(0);
 
         for (int y = 0; y < img.getHeight(); y++) {
             for (int x = 0; x < img.getWidth(); x++) {
@@ -144,17 +185,44 @@ public class Main {
                 extractBit(blue);
             }
         }
+        StringBuilder extractMessage = reOrganize();
         return extractMessage;
     }
 
     public static void extractBit(int component) {
         if (BIT_SKIP == 0) {
             BIT_SKIP = BITS_SPACE;
-            System.out.println("component: "+ component);
+//            System.out.println("component: "+ component);
+            //get LSB from component
             int bitToExtract = component & 1;
-            extractMessage.append(bitToExtract);
+            extractedBits.append(bitToExtract);
         } else {
             BIT_SKIP--;
         }
     }
+
+    public static StringBuilder reOrganize(){
+        StringBuilder ordered = new StringBuilder();
+        for (int i = 0; i < orderOfBits.size(); i++){
+            ordered.append(extractedBits.charAt(orderOfBits.get(i)));
+        }
+        return ordered;
+    }
+
+    //*****************************************************************************
+    public static ArrayList<Integer> shuffleOrder(int numOfBitsAvailable, long seed) {
+        ArrayList<Integer> order = new ArrayList<>();
+        for (int i = 0; i <= numOfBitsAvailable; i++) {
+            order.add(i);
+        }
+
+        // Create a random object with the seed
+        Random random = new Random(seed);
+
+        // Shuffle the numbers based on random with seed
+        Collections.shuffle(order, random);
+
+        return order;
+    }
+
 }
