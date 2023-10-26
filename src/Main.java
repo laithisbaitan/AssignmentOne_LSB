@@ -56,6 +56,7 @@ public class Main {
         StringBuilder bitMessage = getMessage("ModifiedPlayGamesAd.png");
 
         System.out.println("Bits extracted: " + bitMessage);
+        System.out.println("original bits: " + messageToHide);
 
         String ExtractedMessage = binaryToString(String.valueOf(bitMessage));
         System.out.println("Secret message was: " + ExtractedMessage);
@@ -96,7 +97,7 @@ public class Main {
         BufferedImage img = ImageIO.read(file);
 
         //Calculate the distance between each bit
-        BITS_SPACE = ((img.getHeight() * img.getWidth() * 3) / AVG_BIT_MESSAGE)-1;
+        BITS_SPACE = ((img.getHeight() * img.getWidth() * 3) / AVG_BIT_MESSAGE) -1;
         BIT_SKIP = BITS_SPACE;
 
         //Order of the bits to distribute
@@ -141,13 +142,12 @@ public class Main {
 
             if (messageIndex > messageToHide.length()){
                 component = (component & ~1);
+                System.out.println("dummy bit!!");
             }else {
                 int bitToEmbed = messageToHide.charAt(messageIndex) - '0';
-//            System.out.println("Bit to embed: " + bitToEmbed);
+                System.out.println("Bit to embed: " + bitToEmbed);
 
-//            System.out.println("Before: "+ component);
                 component = (component & ~1) | bitToEmbed;
-//            System.out.println("After: "+ component);
             }
             orderIndex++;
         } else {
@@ -161,7 +161,7 @@ public class Main {
     public static StringBuilder getMessage(String CoverImageName) throws IOException {
         BIT_SKIP = BITS_SPACE;
         //Order of the bits to distribute
-        orderOfBits = shuffleOrder(AVG_BIT_MESSAGE, BITS_SPACE);
+//        orderOfBits = shuffleOrder(AVG_BIT_MESSAGE, BITS_SPACE);
 
         // Reading the image
         File file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CoverImages\\" +
@@ -204,7 +204,9 @@ public class Main {
     public static StringBuilder reOrganize(){
         StringBuilder ordered = new StringBuilder();
         for (int i = 0; i < orderOfBits.size(); i++){
-            ordered.append(extractedBits.charAt(orderOfBits.get(i)));
+            int order = orderOfBits.get(i);
+            Character orderedBit = extractedBits.charAt(order);
+            ordered.append(orderedBit);
         }
         return ordered;
     }
@@ -212,7 +214,7 @@ public class Main {
     //*****************************************************************************
     public static ArrayList<Integer> shuffleOrder(int numOfBitsAvailable, long seed) {
         ArrayList<Integer> order = new ArrayList<>();
-        for (int i = 0; i <= numOfBitsAvailable; i++) {
+        for (int i = 0; i < numOfBitsAvailable; i++) {
             order.add(i);
         }
 
