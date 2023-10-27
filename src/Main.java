@@ -8,8 +8,6 @@ import java.util.Collections;
 import java.util.Random;
 
 import static java.lang.System.exit;
-import static javax.swing.UIManager.get;
-import static javax.swing.UIManager.getColor;
 
 public class Main {
     //AVG_BIT_MESSAGE = avg num of words in Email * avg num of char for word * num of bits for each char
@@ -19,12 +17,14 @@ public class Main {
     public static int BIT_SKIP = 0;
     public static ArrayList<Integer> orderOfBits = new ArrayList<>();
     public static int orderIndex = 0;
-    public static StringBuilder extractedBits = new StringBuilder();
+    //    public static int messageIndex = 0;
+    public static StringBuilder extractMessage = new StringBuilder();
 
 
     public static void main(String[] args) throws IOException {
         //choose image in CleanImages folder && Message to hide in it
         String cleanImage = "PlayGamesAd.png";
+
         //70 Words message
 //        String message = "Amidst the bustling crowd, " +
 //                "under the radiant sun, a lone sparrow " +
@@ -53,13 +53,21 @@ public class Main {
         //**********************************************************************
         System.out.println("Extracting message from: Modified"+cleanImage);
         //choose Cover image from CoverImages to check for secret messages
-        StringBuilder bitMessage = getMessage("ModifiedPlayGamesAd.png");
+        StringBuilder extracted_bits = getMessage("ModifiedPlayGamesAd.png");
 
-        System.out.println("Bits extracted: " + bitMessage);
-        System.out.println("original bits: " + messageToHide);
+        StringBuilder bitMessage = reOrganize(extracted_bits);
+        String extractedMessage = binaryToString(String.valueOf(bitMessage));
+        System.out.println("Secret message was: " + extractedMessage);
 
-        String ExtractedMessage = binaryToString(String.valueOf(bitMessage));
-        System.out.println("Secret message was: " + ExtractedMessage);
+        StringBuilder finalmessage = new StringBuilder();
+        System.out.println("Secret message was: ");
+        for (int i = 0; i < extractedMessage.length(); i++){
+            char curr = extractedMessage.charAt(i);
+            if (curr == 'ÿ') break;
+            finalmessage.append(curr);
+        }
+        System.out.println(finalmessage);
+//        mm("PlayGamesAd.png");
     }
 
     public static StringBuilder stringToBinary(String messageToHide) {
@@ -97,77 +105,82 @@ public class Main {
         BufferedImage img = ImageIO.read(file);
 
         //Calculate the distance between each bit
-        BITS_SPACE = ((img.getHeight() * img.getWidth() * 3) / AVG_BIT_MESSAGE) -1;
-        BIT_SKIP = BITS_SPACE;
+        BITS_SPACE = ((img.getHeight() * img.getWidth() * 3) / AVG_BIT_MESSAGE)-1;
+        BIT_SKIP = 0;
 
         //Order of the bits to distribute
         orderOfBits = shuffleOrder(AVG_BIT_MESSAGE, BITS_SPACE);
 
         for (int y = 0; y < img.getHeight(); y++) {
             for (int x = 0; x < img.getWidth(); x++) {
-                if (orderIndex < messageToHide.length()) {
-                    // Get each pixel pixel
-                    int pixel = img.getRGB(x, y);
-                    // Extract the color value from the pixel
-                    Color color = new Color(pixel, true);
-                    // Split the R G B into values to be modified
-                    int red = color.getRed();
-                    int green = color.getGreen();
-                    int blue = color.getBlue();
-                    // Modifying the RGB values and create color
-                    red = modifyBit(red, messageToHide);
-                    green = modifyBit(green, messageToHide);
-                    blue = modifyBit(blue, messageToHide);
-                    // Set the new modified color back to the pixel
-                    color = new Color(red, green, blue);
-                    img.setRGB(x, y, color.getRGB());
-                }else{
-                    break;
-                }
+                // Get each pixel pixel
+                int pixel = img.getRGB(x, y);
+                // Extract the color value from the pixel
+                Color color = new Color(pixel, true);
+                // Split the R G B into values to be modified
+                int red = color.getRed();
+                int green = color.getGreen();
+                int blue = color.getBlue();
+                // Modifying the RGB values and create color
+                red = modifyBit(red, messageToHide);
+                green = modifyBit(green, messageToHide);
+                blue = modifyBit(blue, messageToHide);
+                // Set the new modified color back to the pixel
+                color = new Color(red, green, blue);
+                img.setRGB(x, y, color.getRGB());
             }
         }
         // Saving the modified image
         file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CoverImages\\" +
                 "Modified" + cleanImageName);
         ImageIO.write(img, "png", file);
-        System.out.println("Finished hiding message!!!");
+        System.out.println("Finished!!!");
     }
 
-    // laith code
     public static int modifyBit(int component, StringBuilder messageToHide) {
         //check to embed the bit or not
         if (BIT_SKIP == 0) {
             BIT_SKIP = BITS_SPACE;
+            if (orderIndex >= AVG_BIT_MESSAGE) {
+                return component;
+            }
             int messageIndex = orderOfBits.get(orderIndex);
 
-            if (messageIndex > messageToHide.length()){
-                component = (component & ~1);
-                System.out.println("dummy bit!!");
+            //when the index is within the message length, embed it in the lsb
+            //and make the 8bits after the message to 1's
+            //so our message would look like "hi my name is laith"
+            int bitToEmbed;
+            if (messageIndex >= messageToHide.length()){
+                bitToEmbed = 1;
             }else {
-                int bitToEmbed = messageToHide.charAt(messageIndex) - '0';
-                System.out.println("Bit to embed: " + bitToEmbed);
+                bitToEmbed = messageToHide.charAt(messageIndex) - '0';
+            }
+//            System.out.println("Bit to embed: " + bitToEmbed);
 
+            //
+            if (messageIndex < messageToHide.length()+8){
                 component = (component & ~1) | bitToEmbed;
             }
             orderIndex++;
-        } else {
+        }
+        else {
             BIT_SKIP--;
         }
         return component;
     }
 
-//****************************************************************************************************************
+
+    //****************************************************************************************************************
 
     public static StringBuilder getMessage(String CoverImageName) throws IOException {
-        BIT_SKIP = BITS_SPACE;
-        //Order of the bits to distribute
-//        orderOfBits = shuffleOrder(AVG_BIT_MESSAGE, BITS_SPACE);
-
         // Reading the image
         File file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CoverImages\\" +
                 CoverImageName);
         BufferedImage img = ImageIO.read(file);
-        extractedBits.setLength(0);
+        BITS_SPACE = ((img.getHeight() * img.getWidth() * 3) / AVG_BIT_MESSAGE)-1;
+        BIT_SKIP = 0;
+
+        extractMessage.setLength(0);
 
         for (int y = 0; y < img.getHeight(); y++) {
             for (int x = 0; x < img.getWidth(); x++) {
@@ -185,7 +198,6 @@ public class Main {
                 extractBit(blue);
             }
         }
-        StringBuilder extractMessage = reOrganize();
         return extractMessage;
     }
 
@@ -195,23 +207,13 @@ public class Main {
 //            System.out.println("component: "+ component);
             //get LSB from component
             int bitToExtract = component & 1;
-            extractedBits.append(bitToExtract);
-        } else {
+            extractMessage.append(bitToExtract);
+        }
+        else {
             BIT_SKIP--;
         }
     }
 
-    public static StringBuilder reOrganize(){
-        StringBuilder ordered = new StringBuilder();
-        for (int i = 0; i < orderOfBits.size(); i++){
-            int order = orderOfBits.get(i);
-            Character orderedBit = extractedBits.charAt(order);
-            ordered.append(orderedBit);
-        }
-        return ordered;
-    }
-
-    //*****************************************************************************
     public static ArrayList<Integer> shuffleOrder(int numOfBitsAvailable, long seed) {
         ArrayList<Integer> order = new ArrayList<>();
         for (int i = 0; i < numOfBitsAvailable; i++) {
@@ -227,4 +229,19 @@ public class Main {
         return order;
     }
 
+    public static StringBuilder reOrganize(StringBuilder extractedBits){
+        StringBuilder ordered = new StringBuilder();
+        ordered.setLength(orderOfBits.size());
+
+        for (int i = 0; i < orderOfBits.size(); i++){
+            int order = orderOfBits.get(i);
+            char bitAtIndex = extractedBits.charAt(i);
+            ordered.setCharAt(order, bitAtIndex);
+        }
+        return ordered;
+    }
+
 }
+
+
+
