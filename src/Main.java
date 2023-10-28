@@ -3,9 +3,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Random;
+import java.util.*;
 
 import static java.lang.System.exit;
 
@@ -44,20 +42,24 @@ public class Main {
 //                "to your soul's depths and the mysteries of existence.";
         String message = "hi my name is laith";
 
+        //to embed the signature of the message
+//        message = genSignature(message);
+
         StringBuilder messageToHide = stringToBinary(message);
-        System.out.println(messageToHide.length());
         System.out.println("Hiding: '"+message+"' In: "+cleanImage);
 
         hideMessage(cleanImage, messageToHide);
 
         //**********************************************************************
+
         System.out.println("Extracting message from: Modified"+cleanImage);
         //choose Cover image from CoverImages to check for secret messages
         StringBuilder extracted_bits = getMessage("ModifiedPlayGamesAd.png");
 
+        //reorganize the extracted bits
         StringBuilder bitMessage = reOrganize(extracted_bits);
+        //return bits to string
         String extractedMessage = binaryToString(String.valueOf(bitMessage));
-        System.out.println("Secret message was: " + extractedMessage);
 
         StringBuilder finalmessage = new StringBuilder();
         System.out.println("Secret message was: ");
@@ -67,9 +69,9 @@ public class Main {
             finalmessage.append(curr);
         }
         System.out.println(finalmessage);
-//        mm("PlayGamesAd.png");
     }
 
+    //****************************************************************************************************************
     public static StringBuilder stringToBinary(String messageToHide) {
         // Convert the message to binary
         StringBuilder binaryMessage = new StringBuilder();
@@ -94,15 +96,25 @@ public class Main {
         return originalMessage.toString();
     }
 
+    //****************************************************************************************************************
     public static void hideMessage(String cleanImageName, StringBuilder messageToHide) throws IOException {
-        if (messageToHide.length() > AVG_BIT_MESSAGE){
-            System.out.println("Message to hide is too large for this algorithm!!!");
-            exit(0);
-        }
         // Reading the image
         File file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CleanImages\\" +
                 cleanImageName);
         BufferedImage img = ImageIO.read(file);
+
+        if (messageToHide.length() > AVG_BIT_MESSAGE){
+            System.out.println("Message to hide is too large for AVG_BIT_MESSAGE!!!");
+            System.out.println("Message bit size: " + messageToHide.length());
+            System.out.println("AVG_BIT_MESSAGE: " + AVG_BIT_MESSAGE);
+            exit(0);
+        }
+        if (AVG_BIT_MESSAGE >= (img.getHeight() * img.getWidth() * 3)){
+            System.out.println("Image is too small for AVG_BIT_MESSAGE");
+            System.out.println("Image bit size: " + (img.getHeight() * img.getWidth() * 3));
+            System.out.println("AVG_BIT_MESSAGE: " + AVG_BIT_MESSAGE);
+            exit(0);
+        }
 
         //Calculate the distance between each bit
         BITS_SPACE = ((img.getHeight() * img.getWidth() * 3) / AVG_BIT_MESSAGE)-1;
@@ -169,9 +181,7 @@ public class Main {
         return component;
     }
 
-
     //****************************************************************************************************************
-
     public static StringBuilder getMessage(String CoverImageName) throws IOException {
         // Reading the image
         File file = new File("C:\\ALL\\college\\year5 semmester 1\\COMP438 encryption\\Assignment 1\\AssignmentOne_LSB\\src\\CoverImages\\" +
@@ -214,6 +224,7 @@ public class Main {
         }
     }
 
+    //****************************************************************************************************************
     public static ArrayList<Integer> shuffleOrder(int numOfBitsAvailable, long seed) {
         ArrayList<Integer> order = new ArrayList<>();
         for (int i = 0; i < numOfBitsAvailable; i++) {
@@ -241,6 +252,25 @@ public class Main {
         return ordered;
     }
 
+    //****************************************************************************************************************
+
+    public static String genSignature(String message){
+        Map<Character, Integer> characterMap = new HashMap<>();
+
+        // Count the frequency of each character in the message
+        for (char c : message.toCharArray()) {
+            characterMap.put(c, characterMap.getOrDefault(c, 0) + 1);
+        }
+
+        // Create a signature by appending the frequencies of characters
+        StringBuilder signature = new StringBuilder();
+        for (char c : characterMap.keySet()) {
+            int frequency = characterMap.get(c);
+            signature.append(c).append(frequency);
+        }
+
+        return signature.toString();
+    }
 }
 
 
